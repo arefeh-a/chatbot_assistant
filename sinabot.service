@@ -1,0 +1,25 @@
+[Unit]
+Description=SinaBot FastAPI Application
+After=network.target
+
+[Service]
+User=physical_security
+Group=physical_security
+
+WorkingDirectory=/home/physical_security/Projects/SinaBot/
+EnvironmentFile=/home/physical_security/Projects/SinaBot/.env
+
+ExecStart=/home/physical_security/Projects/SinaBot/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8008
+
+Restart=on-failure
+RestartSec=5
+
+# --- MODIFIED SECTION FOR FILE LOGGING ---
+# Redirect standard output (like INFO logs) to app.log
+StandardOutput=append:/home/physical_security/Projects/SinaBot/logs/app.log
+
+# Redirect standard error (like ERROR logs and tracebacks) to error.log
+StandardError=append:/home/physical_security/Projects/SinaBot/logs/error.log
+
+[Install]
+WantedBy=multi-user.target
