@@ -4,5 +4,8 @@ langchain
 langchain-openai
 langchain-community
 faiss-cpu 
-faiss-gpu
 tiktoken
+fastapi
+uvicorn[standard]
+openai
+google-generativeai
