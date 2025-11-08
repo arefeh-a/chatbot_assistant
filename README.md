@@ -57,7 +57,7 @@ chatbot/
 ├── logs/                         # Application logs
 ├── requirement.txt               # Python dependencies
 ├── .env                          # Environment variables (not in repo)
-└── sinabot.service              # systemd service configuration
+└── Chatbot.service              # systemd service configuration
 ```
 
 ---
@@ -282,7 +282,7 @@ curl -X POST http://localhost:8008/api/v1/chat \
 
 ### Using systemd
 
-1. Edit `sinabot.service` with your paths:
+1. Edit `Chatbot.service` with your paths:
 
     ```ini
     [Service]
@@ -295,17 +295,17 @@ curl -X POST http://localhost:8008/api/v1/chat \
 2. Install and start the service:
 
     ```bash
-    sudo cp sinabot.service /etc/systemd/system/
+    sudo cp Chatbot.service /etc/systemd/system/
     sudo systemctl daemon-reload
-    sudo systemctl enable sinabot
-    sudo systemctl start sinabot
+    sudo systemctl enable Chatbot
+    sudo systemctl start Chatbot
     ```
 
 3. Check status:
 
     ```bash
-    sudo systemctl status sinabot
-    sudo journalctl -u sinabot -f  # View logs
+    sudo systemctl status Chatbot
+    sudo journalctl -u Chatbot -f  # View logs
     ```
 
 ---

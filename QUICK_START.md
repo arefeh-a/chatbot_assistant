@@ -23,7 +23,7 @@ Before you begin, ensure you have:
 ### Step 1: Navigate to Project Directory
 
 ```bash
-cd /home/erfan/Projects/chatbot
+cd /home/your/Projects/chatbot
 ```
 
 If you're cloning the project:
@@ -172,7 +172,7 @@ python -m app.scripts.build_kb
 **Expected output**:
 
 ```bash
-2025-10-05 16:40:15 - INFO - [build_kb] - Step 1: Loading documents from: '/home/erfan/Projects/chatbot/data'
+2025-10-05 16:40:15 - INFO - [build_kb] - Step 1: Loading documents from: '/home/your/Projects/chatbot/data'
 2025-10-05 16:40:15 - INFO - [build_kb] -   - Processing file: '1.txt'
 2025-10-05 16:40:15 - INFO - [build_kb] -   - Processing file: '2.txt'
 ...
@@ -418,7 +418,7 @@ python -m app.main
 **Note**: If running in production with systemd:
 
 ```bash
-sudo systemctl restart sinabot
+sudo systemctl restart Chatbot
 ```
 
 ---
