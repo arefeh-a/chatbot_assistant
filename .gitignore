@@ -118,7 +118,5 @@ data/*.processed
 *.backup
 backup/
 
-# Optional: Uncomment if you don't want to track data files
-# data/*.txt
-# data/*.pdf
-# data/*.json
+# Project-specific: Ignore all source data
+data/
