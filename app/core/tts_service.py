@@ -79,7 +79,7 @@ if __name__ == '__main__':
             tts_service = TTSService(provider=provider_instance)
             
             # --- 3. Run Test ---
-            test_text = "سلام، من سینابات هستم. این یک آزمایش برای تولید گفتار است."
+            test_text = "سلام. این یک آزمایش برای تولید گفتار است."
             test_output_path = PROJECT_ROOT_DIR / "tts_test_output.wav"
             
             print(f"Synthesizing speech for text: '{test_text}'")

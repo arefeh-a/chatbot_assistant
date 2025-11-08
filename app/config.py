@@ -24,11 +24,24 @@ class Provider(str, Enum):
     OPENAI = "openai"
     GOOGLE = "google"
 
+
+
+# --- RAG Mode Selection Enum (NEW) ---
+class RAGMode(str, Enum):
+    RAG_ONLY = "rag_only"           # 1. Answer just from docs (Strict)
+    RAG_WITH_FALLBACK = "rag_with_fallback" # 2. Answer from docs, fallback to LLM
+    LLM_ONLY = "llm_only"             # 3. Just use LLM (No RAG)
+
+
 # --- MASTER SWITCHES: CHOOSE YOUR PROVIDERS HERE ---
 LLM_PROVIDER: Provider = Provider.OPENAI
 EMBEDDING_PROVIDER: Provider = Provider.OPENAI
 TRANSCRIPTION_PROVIDER: Provider = Provider.GOOGLE
 TTS_PROVIDER: Provider = Provider.GOOGLE
+
+
+# --- CHOOSE YOUR RAG MODE HERE ---
+CURRENT_RAG_MODE: RAGMode = RAGMode.RAG_WITH_FALLBACK # This is Mode 2 (Standard RAG)
 
 # --- API Keys (Loaded from environment) ---
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -82,6 +95,8 @@ SOURCE_DOCS_DIR = PROJECT_ROOT / "data"
 APP_PROFILE_DIR = PROJECT_ROOT / "app" / "profile"
 QUERY_REWRITING_FILE_PATH = APP_PROFILE_DIR / "query_rewriting_prompt.txt"
 SYSTEM_PROMPT_FILE_PATH = APP_PROFILE_DIR / "system_prompt.txt"
+STRICT_SYSTEM_PROMPT_FILE_PATH = APP_PROFILE_DIR / "system_prompt_strict.txt" # For RAG_ONLY mode
+
 VECTOR_DB_DIR = APP_PROFILE_DIR / "vector_database"
 FAISS_INDEX_NAME = "kb_index"
 CHUNKED_DOCS_JSON_FILENAME = "chunked_documents.json"

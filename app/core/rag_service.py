@@ -20,6 +20,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from app import config
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,17 @@ class RAGService:
         self.system_prompt_text = self.settings.SYSTEM_PROMPT_FILE_PATH.read_text(encoding="utf-8")
         self.query_rewrite_prompt_text = self.settings.QUERY_REWRITING_FILE_PATH.read_text(encoding="utf-8")
 
+        # Load the new strict prompt for RAG_ONLY mode
+        try:
+            self.strict_system_prompt_text = self.settings.STRICT_SYSTEM_PROMPT_FILE_PATH.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            logger.warning(f"Strict prompt file not found at {self.settings.STRICT_SYSTEM_PROMPT_FILE_PATH}. "
+                           f"RAG_ONLY mode may not function correctly.")
+            self.strict_system_prompt_text = "You must answer only using the context provided." # Fallback
+
+
+
+
     def _load_vector_store_and_retriever(self):
         """Loads the FAISS vector store using the injected embedding model."""
         db_path = self.settings.VECTOR_DB_DIR
@@ -81,16 +93,27 @@ class RAGService:
 
     async def get_response(self, query: str, history: List[Dict[str, str]]) -> AsyncIterator[str]:
         """Streams the RAG response token by token."""
-        logger.info(f"Processing streaming query: '{query[:50]}...'")
+        mode = self.settings.CURRENT_RAG_MODE
+        logger.info(f"Processing streaming query in mode: {mode.value}")
         
         try:
-            query_for_retrieval = await self._get_standalone_query(query, history)
-            retrieved_docs = await self.retriever.ainvoke(query_for_retrieval)
+            context: Optional[str] = None
             
-            context = self._format_retrieved_docs(retrieved_docs)
+            # --- MODIFIED LOGIC ---
+            # Step 1: Only do retrieval if we are NOT in LLM_ONLY mode
+            if mode != self.settings.RAGMode.LLM_ONLY:
+                logger.info("RAG mode detected. Rewriting query and fetching documents.")
+                query_for_retrieval = await self._get_standalone_query(query, history)
+                retrieved_docs = await self.retriever.ainvoke(query_for_retrieval)
+                context = self._format_retrieved_docs(retrieved_docs)
+            else:
+                logger.info("LLM_ONLY mode detected. Skipping retrieval.")
+            # --- END MODIFIED LOGIC ---
+            
+            # Step 2: Prepare final messages based on mode and context
             final_messages = self._prepare_final_messages(history, query, context)
             
-            # Streams the final response using the injected LLM.
+            # Step 3: Stream the final response
             async for chunk in self.llm.astream(final_messages):
                 yield str(chunk.content)
 
@@ -117,16 +140,44 @@ class RAGService:
         if not docs: return "No relevant information was found."
         return "\n\n".join([f"--- Context from: {doc.metadata.get('source', 'N/A')} ---\n{doc.page_content}" for doc in docs])
 
-    def _prepare_final_messages(self, history: List[Dict[str, str]], query: str, context: str) -> List[BaseMessage]:
-        """Prepares the final list of messages for the LLM."""
-        messages: List[BaseMessage] = [SystemMessage(content=self.system_prompt_text)]
-        for msg in history:
-            if msg["role"] == "user": messages.append(HumanMessage(content=msg["content"]))
-            elif msg["role"] == "assistant": messages.append(AIMessage(content=msg["content"]))
-        
-        final_prompt = f"Use the following context to answer the user's question.\n\nContext:\n{context}\n\nUser's Question: {query}"
-        messages.append(HumanMessage(content=final_prompt))
-        return messages
+    def _prepare_final_messages(self, history: List[Dict[str, str]], query: str, context: Optional[str]) -> List[BaseMessage]:
+            """
+            Prepares the final list of messages for the LLM based on the RAG mode.
+            
+            - context (Optional[str]): The retrieved context. 
+                                    Will be `None` if in LLM_ONLY mode.
+            """
+            messages: List[BaseMessage] = []
+            mode = self.settings.CURRENT_RAG_MODE
+
+            # --- 1. Select the System Prompt based on Mode ---
+            if mode == self.settings.RAGMode.RAG_ONLY:
+                # Mode 1: Use the strict prompt
+                messages.append(SystemMessage(content=self.strict_system_prompt_text))
+            else:
+                # Mode 2 & 3: Use the standard, more general prompt
+                messages.append(SystemMessage(content=self.system_prompt_text))
+
+            # --- 2. Add History ---
+            for msg in history:
+                if msg["role"] == "user": messages.append(HumanMessage(content=msg["content"]))
+                elif msg["role"] == "assistant": messages.append(AIMessage(content=msg["content"]))
+            
+            # --- 3. Format the Final Human Message based on Mode ---
+            if mode == self.settings.RAGMode.LLM_ONLY:
+                # Mode 3: Just send the query. No context.
+                final_prompt = query
+            else:
+                # Mode 1 & 2: Send the query with context.
+                # (context will be "No relevant info..." if retrieval found nothing)
+                final_prompt = (
+                    f"Use the following context to answer the user's question.\n\n"
+                    f"Context:\n{context}\n\n"
+                    f"User's Question: {query}"
+                )
+
+            messages.append(HumanMessage(content=final_prompt))
+            return messages
 
 
 
@@ -168,7 +219,7 @@ if __name__ == '__main__':
             
             # --- 4. Run Test Conversation ---
             test_history = []
-            queries_to_test = [("خرید بورسی چگونه است؟", "Standalone query")]
+            queries_to_test = [("سلام", "Standalone query")]
             
             for query_text, _ in queries_to_test:
                 print(f"\nUSER QUERY: {query_text}")
